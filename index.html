@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Hotel Melani</title>
+  <link rel="stylesheet" href="style.css" />
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 0;
+      padding: 0;
+      background-color: #f4f4f4;
+    }
+
+    header {
+      background-color: #004080;
+      color: white;
+      padding: 1rem;
+      text-align: center;
+    }
+
+    nav a {
+      margin: 0 1rem;
+      color: #ffffff;
+      text-decoration: none;
+      font-weight: bold;
+    }
+
+    section {
+      max-width: 400px;
+      margin: 2rem auto;
+      background: white;
+      padding: 2rem;
+      box-shadow: 0 0 10px rgba(0,0,0,0.1);
+      border-radius: 8px;
+    }
+
+    h2 {
+      margin-bottom: 1rem;
+      color: #004080;
+    }
+
+    form input {
+      width: 100%;
+      padding: 0.5rem;
+      margin: 0.5rem 0;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+    }
+
+    form button {
+      width: 100%;
+      padding: 0.75rem;
+      background-color: #004080;
+      color: white;
+      border: none;
+      border-radius: 4px;
+      font-size: 1rem;
+      cursor: pointer;
+    }
+
+    form button:disabled {
+      background-color: #cccccc;
+      cursor: not-allowed;
+    }
+
+    .error {
+      color: red;
+      font-size: 0.9rem;
+      margin-top: 0.5rem;
+    }
+
+    #dashboard {
+      text-align: center;
+    }
+
+    #logoutButton {
+      background-color: #e60000;
+      padding: 0.5rem 1rem;
+      margin-top: 1rem;
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Bienvenido al Hotel Melani</h1>
+    <nav>
+      <a href="#login">Iniciar Sesión</a>
+      <a href="#register">Registrarse</a>
+    </nav>
+  </header>
+
+  <section id="login">
+    <h2>Iniciar Sesión</h2>
+    <form id="loginForm">
+      <input type="email" id="loginEmail" placeholder="Correo electrónico" required />
+      <input type="password" id="loginPassword" placeholder="Contraseña" required />
+      <button type="submit" id="loginButton" disabled>Iniciar Sesión</button>
+      <p id="loginError" class="error"></p>
+      <a href="forgot-password.html">¿Olvidaste tu contraseña?</a>
+    </form>
+  </section>
+
+  <section id="register">
+    <h2>Registro</h2>
+    <form id="registerForm">
+      <input type="text" id="registerName" placeholder="Nombre completo" required />
+      <input type="email" id="registerEmail" placeholder="Correo electrónico" required />
+      <input type="password" id="registerPassword" placeholder="Contraseña" required />
+      <input type="password" id="confirmPassword" placeholder="Confirmar contraseña" required />
+      <button type="submit">Registrarse</button>
+      <p id="registerError" class="error"></p>
+    </form>
+  </section>
+
+  <section id="dashboard" style="display:none">
+    <h2>Bienvenido a tu cuenta</h2>
+    <button id="logoutButton">Cerrar sesión</button>
+  </section>
+
+  <script>
+    const loginEmail = document.getElementById('loginEmail');
+    const loginPassword = document.getElementById('loginPassword');
+    const loginButton = document.getElementById('loginButton');
+    const loginForm = document.getElementById('loginForm');
+    const loginError = document.getElementById('loginError');
+
+    loginEmail.addEventListener('input', toggleLoginButton);
+    loginPassword.addEventListener('input', toggleLoginButton);
+
+    function toggleLoginButton() {
+      loginButton.disabled = !(loginEmail.value && loginPassword.value);
+    }
+
+    loginForm.addEventListener('submit', async function(e) {
+      e.preventDefault();
+      const response = await fetch('login.php', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({
+          email: loginEmail.value,
+          password: loginPassword.value
+        })
+      });
+
+      const result = await response.json();
+      if (result.success) {
+        showDashboard();
+      } else {
+        loginError.textContent = result.error || "Error de inicio de sesión.";
+      }
+    });
+
+    const registerForm = document.getElementById('registerForm');
+    const registerError = document.getElementById('registerError');
+
+    registerForm.addEventListener('submit', async function(e) {
+      e.preventDefault();
+      const name = document.getElementById('registerName').value;
+      const email = document.getElementById('registerEmail').value;
+      const pass = document.getElementById('registerPassword').value;
+      const confirm = document.getElementById('confirmPassword').value;
+
+      if (!name || !email || !pass || !confirm) {
+        registerError.textContent = "Todos los campos son obligatorios.";
+        return;
+      }
+      if (!email.includes('@')) {
+        registerError.textContent = "Correo electrónico inválido.";
+        return;
+      }
+      if (pass.length < 8) {
+        registerError.textContent = "La contraseña debe tener al menos 8 caracteres.";
+        return;
+      }
+      if (pass !== confirm) {
+        registerError.textContent = "Las contraseñas no coinciden.";
+        return;
+      }
+
+      const response = await fetch('register.php', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({
+          nombre: name,
+          email: email,
+          password: pass
+        })
+      });
+
+      const result = await response.json();
+      if (result.success) {
+        alert("Registro exitoso. Ahora puedes iniciar sesión.");
+        window.location.hash = "#login";
+      } else {
+        registerError.textContent = result.error || "Error en el registro.";
+      }
+    });
+
+    const logoutButton = document.getElementById('logoutButton');
+    logoutButton.addEventListener('click', async function() {
+      await fetch('logout.php');
+      document.getElementById('dashboard').style.display = 'none';
+      document.getElementById('login').style.display = 'block';
+      document.getElementById('register').style.display = 'block';
+      window.location.hash = "#login";
+    });
+
+    function showDashboard() {
+      document.getElementById('login').style.display = 'none';
+      document.getElementById('register').style.display = 'none';
+      document.getElementById('dashboard').style.display = 'block';
+    }
+  </script>
+</body>
+</html>
